@@ -39,13 +39,13 @@ contract ERC721Listings is Ownable {
     }
 
     /// @notice Listing storgage by token id
-    mapping(uint256 => Listing) public listings;
+    mapping(uint256 => Listing) private listings;
 
     /**************************************************************************
      * ERRORS
      *************************************************************************/
 
-    error IncorrectPaymentAmount();
+    error IncorrectPaymentAmount(uint256 expected, uint256 provided);
     error IncorrectConfiguration();
     error ListingExecuted();
     error ListingInactive();
@@ -105,7 +105,7 @@ contract ERC721Listings is Ownable {
         uint256 tokenId,
         uint256 price,
         bool setActive
-    ) public onlyOwnerOrMinter {
+    ) external onlyOwnerOrMinter {
         _setListing(tokenId, price, setActive);
     }
 
@@ -118,7 +118,7 @@ contract ERC721Listings is Ownable {
         uint256[] memory tokenIds,
         uint256[] memory prices,
         bool setActive
-    ) public onlyOwnerOrMinter {
+    ) external onlyOwnerOrMinter {
         if (tokenIds.length != prices.length) {
             revert IncorrectConfiguration();
         }
@@ -131,7 +131,7 @@ contract ERC721Listings is Ownable {
     /// @param tokenId The token id to update the price for
     /// @param newPrice The new price to set
     function setListingPrice(uint256 tokenId, uint256 newPrice)
-        public
+        external
         onlyOwnerOrMinter
     {
         Listing storage listing = listings[tokenId];
@@ -142,7 +142,7 @@ contract ERC721Listings is Ownable {
     /// @notice Flips the listing state between ACTIVE and INACTIVE
     /// @dev Only flips between ACTIVE and INACTIVE. Reverts if EXECUTED
     /// @param tokenId The token id to update the listing status for
-    function toggleListingStatus(uint256 tokenId) public onlyOwnerOrMinter {
+    function toggleListingStatus(uint256 tokenId) external onlyOwnerOrMinter {
         Listing storage listing = listings[tokenId];
         if (listing.status == ListingStatus.EXECUTED) revert ListingExecuted();
         listing.status = listing.status == ListingStatus.ACTIVE
@@ -158,13 +158,18 @@ contract ERC721Listings is Ownable {
     /// @dev Accepts payment, checks if listing can be purchased,
     ///      transfers token to new owner and sends payment to payout address
     /// @param tokenId The token id to purchase
-    function purchase(uint256 tokenId) public payable {
+    function purchase(uint256 tokenId) external payable {
         Listing storage listing = listings[tokenId];
 
         // Check if the token can be purchased
         if (listing.status == ListingStatus.EXECUTED) revert ListingExecuted();
         if (listing.status == ListingStatus.INACTIVE) revert ListingInactive();
-        if (msg.value != listing.price) revert IncorrectPaymentAmount();
+        if (msg.value != listing.price) {
+            revert IncorrectPaymentAmount({
+                expected: listing.price,
+                provided: msg.value
+            });
+        }
 
         // Transfer the token from the owner to the buyer
         IERC721(tokenAddress).safeTransferFrom(
@@ -185,7 +190,7 @@ contract ERC721Listings is Ownable {
     /// @dev The address is used in the purchase flow to transfer tokens
     /// @param _tokenOwnerAddress The original minter of the tokens
     function setTokenOwnerAddress(address _tokenOwnerAddress)
-        public
+        external
         onlyOwnerOrMinter
     {
         tokenOwnerAddress = _tokenOwnerAddress;
@@ -193,12 +198,15 @@ contract ERC721Listings is Ownable {
 
     /// @notice Updates the address that receives sale proceeds
     /// @param _payoutAddress The address where sale proceeds should be paid to
-    function setPayoutAddress(address _payoutAddress) public onlyOwnerOrMinter {
+    function setPayoutAddress(address _payoutAddress)
+        external
+        onlyOwnerOrMinter
+    {
         payoutAddress = payable(_payoutAddress);
     }
 
     /// @notice Withdraw the contract balance to the payout address
-    function withdraw() public {
+    function withdraw() external {
         (bool sent, ) = payoutAddress.call{value: address(this).balance}("");
         if (!sent) revert PaymentFailed();
     }
@@ -211,7 +219,7 @@ contract ERC721Listings is Ownable {
     /// @param tokenId The token id to get listing information for
     /// @return listing Listing information
     function getListing(uint256 tokenId)
-        public
+        external
         view
         returns (Listing memory listing)
     {
@@ -222,7 +230,7 @@ contract ERC721Listings is Ownable {
     /// @param tokenId The token id to get the listing price for
     /// @return price Listing price
     function getListingPrice(uint256 tokenId)
-        public
+        external
         view
         returns (uint256 price)
     {
@@ -233,7 +241,7 @@ contract ERC721Listings is Ownable {
     /// @param tokenId The token id to get the listing status for
     /// @return status Listing status
     function getListingStatus(uint256 tokenId)
-        public
+        external
         view
         returns (ListingStatus status)
     {

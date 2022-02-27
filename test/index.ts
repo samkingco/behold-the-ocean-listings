@@ -287,11 +287,11 @@ describe("ERC721Listings", function () {
     });
 
     it("should not allow purchasing with the incorrect amount", async () => {
+      const expected = ethers.utils.parseEther("1");
+      const value = ethers.utils.parseEther("10");
       await expect(
-        testContract
-          .connect(customer)
-          .purchase(1, { value: ethers.utils.parseEther("10") })
-      ).to.revertedWith("IncorrectPaymentAmount()");
+        testContract.connect(customer).purchase(1, { value })
+      ).to.revertedWith(`IncorrectPaymentAmount(${expected}, ${value})`);
     });
   });
 });
