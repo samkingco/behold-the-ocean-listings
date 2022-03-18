@@ -73,7 +73,7 @@ describe("ERC721Listings", function () {
       expect(
         await testContract.provider.getBalance(testContract.address)
       ).to.equal(ethers.utils.parseEther("0"));
-      await testContract.setListing(1, ethers.utils.parseEther("10"), true);
+      await testContract.createListing(1, ethers.utils.parseEther("10"), true);
       await testContract
         .connect(customer)
         .purchase(1, { value: ethers.utils.parseEther("10") });
@@ -98,7 +98,7 @@ describe("ERC721Listings", function () {
 
   describe("creating listings", () => {
     it("should add a single listing", async () => {
-      await testContract.setListing(1, ethers.utils.parseEther("10"), true);
+      await testContract.createListing(1, ethers.utils.parseEther("10"), true);
       expect(await testContract.getListing(1)).to.eql([
         ethers.utils.parseEther("10"),
         ListingStatus.ACTIVE,
@@ -107,7 +107,7 @@ describe("ERC721Listings", function () {
 
     it("should add multiple listings", async () => {
       const [tokenIds, prices] = getBatchListingArgs();
-      await testContract.setListingBatch(tokenIds, prices, true);
+      await testContract.createListingBatch(tokenIds, prices, true);
       for (const tokenId of tokenIds) {
         expect(await testContract.getListing(tokenId)).to.eql([
           ethers.utils.parseEther(tokenId.toString()),
@@ -119,7 +119,7 @@ describe("ERC721Listings", function () {
     it("should let the minter add listings", async () => {
       await testContract
         .connect(minter)
-        .setListing(1, ethers.utils.parseEther("10"), true);
+        .createListing(1, ethers.utils.parseEther("10"), true);
       expect(await testContract.getListing(1)).to.eql([
         ethers.utils.parseEther("10"),
         ListingStatus.ACTIVE,
@@ -128,7 +128,7 @@ describe("ERC721Listings", function () {
       const [tokenIds, prices] = getBatchListingArgs();
       await testContract
         .connect(minter)
-        .setListingBatch(tokenIds, prices, true);
+        .createListingBatch(tokenIds, prices, true);
       for (const tokenId of tokenIds) {
         expect(await testContract.getListing(tokenId)).to.eql([
           ethers.utils.parseEther(tokenId.toString()),
@@ -141,17 +141,19 @@ describe("ERC721Listings", function () {
       await expect(
         testContract
           .connect(customer)
-          .setListing(1, ethers.utils.parseEther("10"), true)
+          .createListing(1, ethers.utils.parseEther("10"), true)
       ).to.revertedWith("NotAuthorized()");
 
       const [tokenIds, prices] = getBatchListingArgs();
       await expect(
-        testContract.connect(customer).setListingBatch(tokenIds, prices, true)
+        testContract
+          .connect(customer)
+          .createListingBatch(tokenIds, prices, true)
       ).to.revertedWith("NotAuthorized()");
     });
 
     it("should list a token with inactive status", async () => {
-      await testContract.setListing(1, ethers.utils.parseEther("10"), false);
+      await testContract.createListing(1, ethers.utils.parseEther("10"), false);
       expect(await testContract.getListing(1)).to.eql([
         ethers.utils.parseEther("10"),
         ListingStatus.INACTIVE,
@@ -165,18 +167,18 @@ describe("ERC721Listings", function () {
         .slice(0, 10);
 
       await expect(
-        testContract.setListingBatch(tokenIds, prices, true)
+        testContract.createListingBatch(tokenIds, prices, true)
       ).to.revertedWith("IncorrectConfiguration()");
     });
 
     it("should revert adding an already executed listing", async () => {
-      await testContract.setListing(1, ethers.utils.parseEther("10"), true);
+      await testContract.createListing(1, ethers.utils.parseEther("10"), true);
       await testContract
         .connect(customer)
         .purchase(1, { value: ethers.utils.parseEther("10") });
 
       await expect(
-        testContract.setListing(1, ethers.utils.parseEther("5"), true)
+        testContract.createListing(1, ethers.utils.parseEther("5"), true)
       ).to.revertedWith("ListingExecuted()");
     });
   });
@@ -184,14 +186,14 @@ describe("ERC721Listings", function () {
   describe("updating listings", () => {
     beforeEach(async () => {
       const [tokenIds, prices] = getBatchListingArgs();
-      await testContract.setListingBatch(tokenIds, prices, true);
+      await testContract.createListingBatch(tokenIds, prices, true);
     });
 
     it("should update a listings price", async () => {
       expect(await testContract.getListingPrice(1)).to.equal(
         ethers.utils.parseEther("1")
       );
-      await testContract.setListingPrice(1, ethers.utils.parseEther("10"));
+      await testContract.updateListingPrice(1, ethers.utils.parseEther("10"));
       expect(await testContract.getListingPrice(1)).to.equal(
         ethers.utils.parseEther("10")
       );
@@ -205,7 +207,7 @@ describe("ERC721Listings", function () {
         .connect(customer)
         .purchase(1, { value: ethers.utils.parseEther("1") });
       await expect(
-        testContract.setListingPrice(1, ethers.utils.parseEther("10"))
+        testContract.updateListingPrice(1, ethers.utils.parseEther("10"))
       ).to.revertedWith("ListingExecuted()");
       expect(await testContract.getListingPrice(1)).to.equal(
         ethers.utils.parseEther("1")
@@ -248,7 +250,7 @@ describe("ERC721Listings", function () {
   describe("purchasing", () => {
     beforeEach(async () => {
       const [tokenIds, prices] = getBatchListingArgs();
-      await testContract.setListingBatch(tokenIds, prices, true);
+      await testContract.createListingBatch(tokenIds, prices, true);
     });
 
     it("should allow customers to purchase tokens", async () => {

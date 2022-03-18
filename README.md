@@ -31,13 +31,13 @@ This assumes the listing contract is deployed and verified on Etherscan. All act
 
 1. Mint a token on your token contract e.g. Manifold. You should now own that token.
 2. Go to the listing contract on Etherscan and navigate to the "Write contract" tab.
-3. Find the `setListing` function and expand it. There should be 3 fields.
+3. Find the `createListing` function and expand it. There should be 3 fields.
    1. `tokenId` is the token number from your token contract e.g. `1` for token 1.
    2. `price` is the price to list the token at in Wei. To get the Wei amount, use [this converter](https://etherscan.io/unitconverter).
    3. `setActive` set this to `true` if you want the listing to be immediately purchasable, or set it to `false` if you want to activate it at a later date. Most of the time you want to set this to `true`. Customers won't be able to buy until the listing is active.
 4. Once you've entered those details, hit "Write" and confirm in your wallet.
 
-You can also `setListingBatch` to create multiple listings, but this is more tricky through the Etherscan UI.
+You can also `createListingBatch` to create multiple listings, but this is more tricky through the Etherscan UI.
 
 ### Setting a listing to active/inactive
 
@@ -45,7 +45,7 @@ There's a function called `toggleListingStatus` which flips a listing state to a
 
 ### Update a listing's price
 
-You can update the price of an active/inactive listing by using `setListingPrice`. You must specify the `tokenId` for the listing, and the `newPrice` in Wei.
+You can update the price of an active/inactive listing by using `updateListingPrice`. You must specify the `tokenId` for the listing, and the `newPrice` in Wei.
 
 ### Withdrawing funds
 

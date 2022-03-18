@@ -42,6 +42,27 @@ contract ERC721Listings is Ownable {
     mapping(uint256 => Listing) private listings;
 
     /**************************************************************************
+     * EVENTS
+     *************************************************************************/
+
+    /// @notice When a listing is created
+    /// @param tokenId The token ID that was listed
+    /// @param price The price of the listing
+    event ListingCreated(uint256 tokenId, uint256 price);
+
+    /// @notice When a listings price or status is updated
+    /// @param tokenId The token ID of the listing that was updated
+    /// @param price The new listing price
+    /// @param status The new listing status
+    event ListingUpdated(uint256 tokenId, uint256 price, ListingStatus status);
+
+    /// @notice When a listing is purchased by a buyer
+    /// @param tokenId The token ID that was purchased
+    /// @param price The price the buyer paid
+    /// @param buyer The buyer of the token ID
+    event ListingPurchased(uint256 tokenId, uint256 price, address buyer);
+
+    /**************************************************************************
      * ERRORS
      *************************************************************************/
 
@@ -101,12 +122,13 @@ contract ERC721Listings is Ownable {
     /// @param tokenId The token id to set listing information for
     /// @param price The price to list the token id at
     /// @param setActive If the listing should be set to active or not
-    function setListing(
+    function createListing(
         uint256 tokenId,
         uint256 price,
         bool setActive
     ) external onlyOwnerOrMinter {
         _setListing(tokenId, price, setActive);
+        emit ListingCreated(tokenId, price);
     }
 
     /// @notice Sets information about multiple listings
@@ -114,7 +136,7 @@ contract ERC721Listings is Ownable {
     /// @param tokenIds An array of token ids to set listing information for
     /// @param prices An array of prices to list each token id at
     /// @param setActive If the listings should be set to active or not
-    function setListingBatch(
+    function createListingBatch(
         uint256[] memory tokenIds,
         uint256[] memory prices,
         bool setActive
@@ -124,19 +146,21 @@ contract ERC721Listings is Ownable {
         }
         for (uint256 i = 0; i < tokenIds.length; i++) {
             _setListing(tokenIds[i], prices[i], setActive);
+            emit ListingCreated(tokenIds[i], prices[i]);
         }
     }
 
-    /// @notice Sets the price of a specific listing
+    /// @notice Updates the price of a specific listing
     /// @param tokenId The token id to update the price for
     /// @param newPrice The new price to set
-    function setListingPrice(uint256 tokenId, uint256 newPrice)
+    function updateListingPrice(uint256 tokenId, uint256 newPrice)
         external
         onlyOwnerOrMinter
     {
         Listing storage listing = listings[tokenId];
         if (listing.status == ListingStatus.EXECUTED) revert ListingExecuted();
         listing.price = newPrice;
+        emit ListingUpdated(tokenId, listing.price, listing.status);
     }
 
     /// @notice Flips the listing state between ACTIVE and INACTIVE
@@ -148,6 +172,7 @@ contract ERC721Listings is Ownable {
         listing.status = listing.status == ListingStatus.ACTIVE
             ? ListingStatus.INACTIVE
             : ListingStatus.ACTIVE;
+        emit ListingUpdated(tokenId, listing.price, listing.status);
     }
 
     /**************************************************************************
@@ -180,6 +205,8 @@ contract ERC721Listings is Ownable {
 
         // Set the listing to executed
         listing.status = ListingStatus.EXECUTED;
+
+        emit ListingPurchased(tokenId, msg.value, msg.sender);
     }
 
     /**************************************************************************
